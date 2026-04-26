@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Nash Collection Shianda | Premium Store</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background: #f5f3ef; color: #1a2a2c; }
+    .header { background: #0a2a2b; color: white; padding: 20px 0; position: sticky; top: 0; z-index: 100; }
+    .container { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
+    .header-flex { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+    .logo h1 { font-size: 1.6rem; font-weight: 800; }
+    .logo p { font-size: 0.7rem; opacity: 0.8; }
+    .secret-dot { cursor: pointer; display: inline-block; width: 8px; height: 8px; background: transparent; margin-left: 3px; font-size: 0px; }
+    .search-section { background: white; padding: 15px 0; border-bottom: 1px solid #e2dcd0; position: sticky; top: 80px; z-index: 99; }
+    .search-wrapper { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; justify-content: space-between; }
+    .search-box { flex: 2; min-width: 220px; display: flex; gap: 8px; background: #f0ede6; border-radius: 50px; padding: 4px 8px 4px 20px; align-items: center; }
+    .search-box input { flex: 1; border: none; background: transparent; padding: 12px 0; outline: none; }
+    .search-box button { background: #0a2a2b; border: none; color: white; padding: 8px 22px; border-radius: 40px; cursor: pointer; font-weight: 600; }
+    .category-buttons { display: flex; flex-wrap: wrap; gap: 10px; }
+    .cat-filter { background: #e5dfd3; border: none; padding: 8px 18px; border-radius: 40px; cursor: pointer; font-weight: 500; }
+    .cat-filter.active, .cat-filter:hover { background: #0a2a2b; color: white; }
+    .products-section { padding: 40px 0 60px; }
+    .section-title { font-size: 1.8rem; font-weight: 700; margin-bottom: 28px; }
+    .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 28px; }
+    .product-card { background: white; border-radius: 24px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.05); transition: 0.2s; }
+    .product-card:hover { transform: translateY(-5px); box-shadow: 0 15px 30px rgba(0,0,0,0.1); }
+    .product-img { width: 100%; height: 250px; object-fit: cover; background: #ddd6cc; }
+    .product-info { padding: 18px; }
+    .product-title { font-weight: 800; font-size: 1.1rem; }
+    .product-category { font-size: 0.7rem; color: #b87c4a; text-transform: uppercase; margin: 8px 0; }
+    .product-price { font-size: 1.4rem; font-weight: 800; color: #0a2a2b; margin: 8px 0; }
+    .stock-status { font-size: 0.7rem; padding: 4px 10px; border-radius: 30px; display: inline-block; margin: 8px 0; }
+    .in-stock { background: #dff0e6; color: #1f6e43; }
+    .low-stock { background: #fff0df; color: #c96f1e; }
+    .out-stock { background: #ffe3df; color: #bc4e2c; }
+    .contact-btn { width: 100%; background: #0a2a2b; color: white; border: none; padding: 10px; border-radius: 40px; font-weight: 600; cursor: pointer; margin-top: 8px; }
+    .contact-btn:hover { background: #1e4a4d; }
+    /* ADMIN MODAL - FULLY WORKING */
+    .admin-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; display: none; justify-content: center; align-items: center; }
+    .admin-box { background: white; width: 90%; max-width: 550px; max-height: 85vh; border-radius: 32px; padding: 28px; overflow-y: auto; }
+    .admin-box h2, .admin-box h3 { margin-bottom: 16px; }
+    .admin-box input, .admin-box select, .admin-box textarea { width: 100%; padding: 12px; margin: 8px 0 16px; border: 1px solid #ddd2c0; border-radius: 28px; background: #fefcf9; }
+    .admin-product-item { display: flex; justify-content: space-between; align-items: center; background: #faf7f2; padding: 12px 16px; border-radius: 28px; margin-bottom: 10px; }
+    .btn-primary { background: #0a2a2b; color: white; border: none; padding: 12px 20px; border-radius: 40px; font-weight: 700; cursor: pointer; width: 100%; }
+    .btn-danger { background: #bc4e2c; color: white; border: none; padding: 6px 14px; border-radius: 30px; cursor: pointer; }
+    .close-admin { float: right; font-size: 28px; cursor: pointer; }
+    footer { background: #121c1e; color: #b9b1a2; text-align: center; padding: 32px; font-size: 0.8rem; margin-top: 40px; }
+    .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #0a2a2b; color: white; padding: 12px 25px; border-radius: 50px; display: none; z-index: 1100; }
+    @media (max-width: 700px) {
+      .products-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; }
+      .product-img { height: 170px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="container header-flex">
+    <div class="logo">
+      <h1>NASH COLLECTION SHIANDA<span class="secret-dot" id="adminDot"></span></h1>
+      <p>Premium Apparel • Mattresses • Footwear • Accessories</p>
+    </div>
+    <div><i class="fas fa-store"></i> Quality since 2020</div>
+  </div>
+</div>
+
+<div class="search-section">
+  <div class="container search-wrapper">
+    <div class="search-box">
+      <i class="fas fa-search"></i>
+      <input type="text" id="searchInput" placeholder="Search products...">
+      <button id="searchBtn">Search</button>
+    </div>
+    <div class="category-buttons" id="categoryFilters">
+      <button class="cat-filter active" data-cat="all">All</button>
+      <button class="cat-filter" data-cat="Clothes">👕 Clothes</button>
+      <button class="cat-filter" data-cat="T-Shirts">👕 T-Shirts</button>
+      <button class="cat-filter" data-cat="Shirts">👔 Shirts</button>
+      <button class="cat-filter" data-cat="Trousers">👖 Trousers</button>
+      <button class="cat-filter" data-cat="Shoes">👟 Shoes</button>
+      <button class="cat-filter" data-cat="Mattresses">🛏️ Mattresses</button>
+      <button class="cat-filter" data-cat="Hats">🧢 Hats</button>
+      <button class="cat-filter" data-cat="Belts">⛓️ Belts</button>
+    </div>
+  </div>
+</div>
+
+<section class="products-section">
+  <div class="container">
+    <h2 class="section-title">🔥 Latest Collection</h2>
+    <div class="products-grid" id="productsGrid">
+      <div style="text-align: center; grid-column: span 4;">Loading products...</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>Nash Collection Shianda | Clothes • Mattresses • Shoes • Belts • Hats • T-shirts • Shirts • Trousers</p>
+  <p>📞 Contact: 0725980427 | 📧 kitonganashon@gmail.com</p>
+</footer>
+
+<!-- ADMIN PANEL - HIDDEN, OPENS BY TAPPING THE DOT 5 TIMES -->
+<div id="adminOverlay" class="admin-overlay">
+  <div class="admin-box">
+    <span class="close-admin" id="closeAdminBtn">&times;</span>
+    <div id="loginSection">
+      <h2>🔐 Admin Access</h2>
+      <input type="password" id="adminPassInput" placeholder="Enter password">
+      <button id="loginAdminBtn" class="btn-primary">Login</button>
+    </div>
+    <div id="dashboardSection" style="display:none;">
+      <h2>📦 Admin Dashboard</h2>
+      <div style="border-bottom: 1px solid #eee; margin-bottom: 20px; padding-bottom: 20px;">
+        <h3>➕ Add Product</h3>
+        <input type="text" id="prodName" placeholder="Product name">
+        <select id="prodCategory">
+          <option value="Clothes">Clothes</option><option value="T-Shirts">T-Shirts</option>
+          <option value="Shirts">Shirts</option><option value="Trousers">Trousers</option>
+          <option value="Shoes">Shoes</option>
+          <option value="Mattresses">Mattresses</option>
+          <option value="Hats">Hats</option><option value="Belts">Belts</option>
+        </select>
+        <input type="number" id="prodPrice" placeholder="Price (KES)">
+        <input type="number" id="prodStock" placeholder="Stock quantity">
+        <textarea id="prodDesc" rows="2" placeholder="Description"></textarea>
+        <input type="file" id="prodImage" accept="image/*">
+        <button id="addProductBtn" class="btn-primary">📤 Publish Product</button>
+      </div>
+      <h3>✏️ Manage Products</h3>
+      <div id="adminProductsList"></div>
+      <button id="changeAdminPassBtn" style="background:#c49a6c; margin-top:16px;" class="btn-primary">Change Password</button>
+    </div>
+  </div>
+</div>
+
+<div id="toastMsg" class="toast"></div>
+
+<script>
+  // Firebase config
+  const firebaseConfig = {
+    apiKey: "AIzaSyB_cAjquKbtEcqcfdHiby9OIGTFwt2WFls",
+    authDomain: "madip-fac8f.firebaseapp.com",
+    projectId: "madip-fac8f",
+    storageBucket: "madip-fac8f.firebasestorage.app",
+    messagingSenderId: "228632767324",
+    appId: "1:228632767324:web:07bd5fe00aeee29501ef99"
+  };
+  
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  const storage = firebase.storage();
+  
+  // DOM elements
+  const productsGrid = document.getElementById("productsGrid");
+  const adminOverlay = document.getElementById("adminOverlay");
+  const adminDot = document.getElementById("adminDot");
+  const closeAdminBtn = document.getElementById("closeAdminBtn");
+  const loginSection = document.getElementById("loginSection");
+  const dashboardSection = document.getElementById("dashboardSection");
+  const loginAdminBtn = document.getElementById("loginAdminBtn");
+  const adminPassInput = document.getElementById("adminPassInput");
+  const addProductBtn = document.getElementById("addProductBtn");
+  const changeAdminPassBtn = document.getElementById("changeAdminPassBtn");
+  const searchInput = document.getElementById("searchInput");
+  const searchBtn = document.getElementById("searchBtn");
+  
+  let currentCategory = "all";
+  let currentSearch = "";
+  let allProducts = [];
+  
+  function showToast(msg, isErr = false) {
+    const toast = document.getElementById("toastMsg");
+    toast.textContent = msg;
+    toast.style.background = isErr ? "#bc4e2c" : "#0a2a2b";
+    toast.style.display = "block";
+    setTimeout(() => toast.style.display = "none", 3000);
+  }
+  
+  // SECRET: 5 taps on invisible dot to open admin
+  let tapCount = 0;
+  let tapTimeout;
+  adminDot.addEventListener("click", () => {
+    tapCount++;
+    clearTimeout(tapTimeout);
+    tapTimeout = setTimeout(() => { tapCount = 0; }, 1000);
+    if (tapCount === 5) {
+      tapCount = 0;
+      adminOverlay.style.display = "flex";
+      loginSection.style.display = "block";
+      dashboardSection.style.display = "none";
+      adminPassInput.value = "";
+    }
+  });
+  
+  closeAdminBtn.addEventListener("click", () => {
+    adminOverlay.style.display = "none";
+  });
+  
+  // Admin login
+  loginAdminBtn.addEventListener("click", async () => {
+    const entered = adminPassInput.value;
+    let savedPass = "NashAdmin2025!";
+    try {
+      const doc = await db.collection("settings").doc("admin").get();
+      if (doc.exists && doc.data().password) savedPass = doc.data().password;
+      else await db.collection("settings").doc("admin").set({ password: savedPass });
+    } catch(e) {}
+    if (entered === savedPass) {
+      loginSection.style.display = "none";
+      dashboardSection.style.display = "block";
+      showToast("Admin access granted");
+      renderAdminList();
+    } else {
+      showToast("Wrong password", true);
+    }
+  });
+  
+  changeAdminPassBtn.addEventListener("click", async () => {
+    const newPass = prompt("Enter new admin password (min 4 chars):");
+    if (newPass && newPass.length >= 4) {
+      await db.collection("settings").doc("admin").set({ password: newPass });
+      showToast("Password changed");
+    } else if (newPass) showToast("Too short", true);
+  });
+  
+  // Real-time listener for products
+  function startRealtimeSync() {
+    db.collection("products").orderBy("timestamp", "desc").onSnapshot((snapshot) => {
+      allProducts = snapshot.docs;
+      renderCustomerProducts();
+      if (dashboardSection.style.display === "block") renderAdminList();
+    });
+  }
+  
+  function renderCustomerProducts() {
+    let filtered = [...allProducts];
+    if (currentCategory !== "all") {
+      filtered = filtered.filter(d => d.data().category === currentCategory);
+    }
+    if (currentSearch.trim()) {
+      const q = currentSearch.toLowerCase();
+      filtered = filtered.filter(d => {
+        const data = d.data();
+        return data.name.toLowerCase().includes(q) || 
+               (data.description && data.description.toLowerCase().includes(q));
+      });
+    }
+    if (filtered.length === 0) {
+      productsGrid.innerHTML = "<div style='grid-column:span 4; text-align:center;'>No products found</div>";
+      return;
+    }
+    productsGrid.innerHTML = filtered.map(doc => {
+      const p = doc.data();
+      let stockClass = "in-stock", stockText = "In Stock";
+      if (p.stock <= 0) { stockClass = "out-stock"; stockText = "Out of Stock"; }
+      else if (p.stock < 5) { stockClass = "low-stock"; stockText = `Low stock (${p.stock})`; }
+      else stockText = `In Stock (${p.stock})`;
+      
+      const imgUrl = p.imageUrl || "https://via.placeholder.com/300x240?text=Nash";
+      return `
+        <div class="product-card">
+          <img class="product-img" src="${imgUrl}" onerror="this.src='https://via.placeholder.com/300x240?text=Nash'">
+          <div class="product-info">
+            <div class="product-category">${p.category}</div>
+            <div class="product-title">${escapeHtml(p.name)}</div>
+            <div class="product-price">KSh ${Number(p.price).toLocaleString()}</div>
+            <span class="stock-status ${stockClass}">${stockText}</span>
+            <p style="font-size:0.75rem; color:#6b5a48;">${escapeHtml(p.description || '')}</p>
+            <button class="contact-btn" data-name="${escapeHtml(p.name)}"><i class="fas fa-envelope"></i> Buy / Inquire</button>
+          </div>
+        </div>
+      `;
+    }).join("");
+    
+    document.querySelectorAll(".contact-btn").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const name = btn.getAttribute("data-name");
+        window.location.href = `mailto:kitonganashon@gmail.com?subject=Inquiry: ${name}&body=Hello, I'm interested in ${name}. Please share details.`;
+      });
+    });
+  }
+  
+  function escapeHtml(str) { if(!str) return ""; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+  
+  async function renderAdminList() {
+    const container = document.getElementById("adminProductsList");
+    if (!container) return;
+    if (allProducts.length === 0) {
+      container.innerHTML = "<p>No products yet. Add your first product.</p>";
+      return;
+    }
+    container.innerHTML = allProducts.map(doc => {
+      const p = doc.data();
+      return `
+        <div class="admin-product-item">
+          <div><strong>${escapeHtml(p.name)}</strong><br>${p.category} | KSh ${p.price} | Stock: ${p.stock}</div>
+          <div>
+            <button class="btn-danger" onclick="window.deleteProduct('${doc.id}')">Delete</button>
+            <button style="margin-left:8px; background:#c49a6c; border:none; border-radius:30px; padding:4px 12px;" onclick="window.editStock('${doc.id}', ${p.stock})">Edit Stock</button>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+  
+  window.deleteProduct = async (id) => {
+    if (confirm("Delete this product?")) {
+      await db.collection("products").doc(id).delete();
+      showToast("Product deleted");
+    }
+  };
+  
+  window.editStock = async (id, current) => {
+    const newStock = prompt("Enter new stock quantity:", current);
+    if (newStock !== null && !isNaN(parseInt(newStock))) {
+      await db.collection("products").doc(id).update({ stock: parseInt(newStock) });
+      showToast("Stock updated");
+    }
+  };
+  
+  // Add product with image
+  addProductBtn.addEventListener("click", async () => {
+    const name = document.getElementById("prodName").value.trim();
+    const category = document.getElementById("prodCategory").value;
+    const price = parseFloat(document.getElementById("prodPrice").value);
+    const stock = parseInt(document.getElementById("prodStock").value);
+    const desc = document.getElementById("prodDesc").value.trim();
+    const imageFile = document.getElementById("prodImage").files[0];
+    
+    if (!name || isNaN(price) || isNaN(stock)) {
+      showToast("Name, price and stock required", true);
+      return;
+    }
+    
+    let imageUrl = "https://via.placeholder.com/300x240?text=Nash+Product";
+    if (imageFile) {
+      try {
+        const ref = storage.ref().child(`products/${Date.now()}_${name.replace(/[^a-z0-9]/gi, '_')}`);
+        await ref.put(imageFile);
+        imageUrl = await ref.getDownloadURL();
+      } catch(e) { showToast("Image upload failed", true); }
+    }
+    
+    await db.collection("products").add({
+      name, category, price, stock, description: desc,
+      imageUrl, timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    showToast(`✅ "${name}" added - visible to everyone!`);
+    document.getElementById("prodName").value = "";
+    document.getElementById("prodPrice").value = "";
+    document.getElementById("prodStock").value = "";
+    document.getElementById("prodDesc").value = "";
+    document.getElementById("prodImage").value = "";
+  });
+  
+  // Category filters
+  document.querySelectorAll(".cat-filter").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".cat-filter").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      currentCategory = btn.getAttribute("data-cat");
+      renderCustomerProducts();
+    });
+  });
+  
+  searchBtn.addEventListener("click", () => {
+    currentSearch = searchInput.value.trim();
+    renderCustomerProducts();
+  });
+  searchInput.addEventListener("keyup", (e) => { if(e.key === "Enter") currentSearch = searchInput.value.trim(); renderCustomerProducts(); });
+  
+  startRealtimeSync();
+</script>
+</body>
+                                                                                 </html>
