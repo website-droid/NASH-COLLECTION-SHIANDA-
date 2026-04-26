@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Edwin X | Live Store – Premium Apparel & Home</title>
+  <!-- Font Awesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background: #f8f6f2; color: #1f2a2e; }
+    .header { background: linear-gradient(135deg, #0c3a3b 0%, #1e5552 100%); color: white; padding: 18px 0; position: sticky; top: 0; z-index: 100; box-shadow: 0 6px 18px rgba(0,0,0,0.08); }
+    .container { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
+    .header-flex { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+    .logo h1 { font-size: 1.7rem; font-weight: 800; letter-spacing: -0.3px; }
+    .logo p { font-size: 0.7rem; opacity: 0.85; }
+    .hidden-dot { cursor: pointer; display: inline-block; background: transparent; margin-left: 4px; font-size: 1.3rem; user-select: none; }
+    .search-section { background: white; padding: 16px 0; border-bottom: 1px solid #e6dfd3; position: sticky; top: 82px; z-index: 99; box-shadow: 0 2px 6px rgba(0,0,0,0.02); }
+    .search-wrapper { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: space-between; }
+    .search-box { flex: 2; min-width: 200px; display: flex; gap: 8px; background: #f2efe8; border-radius: 60px; padding: 4px 8px 4px 18px; align-items: center; }
+    .search-box input { flex: 1; border: none; background: transparent; padding: 12px 0; font-size: 0.95rem; outline: none; }
+    .search-box button { background: #1e5552; border: none; color: white; padding: 8px 20px; border-radius: 40px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+    .category-buttons { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .cat-filter { background: #eae4d8; border: none; padding: 8px 18px; border-radius: 40px; font-weight: 500; cursor: pointer; transition: all 0.2s; font-size: 0.8rem; }
+    .cat-filter.active, .cat-filter:hover { background: #1e5552; color: white; }
+    .products-section { padding: 40px 0 60px; }
+    .section-title { font-size: 1.8rem; font-weight: 700; margin-bottom: 28px; display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; }
+    .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 28px; }
+    .product-card { background: white; border-radius: 24px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.05); transition: all 0.25s; }
+    .product-card:hover { transform: translateY(-5px); box-shadow: 0 18px 30px rgba(0,0,0,0.1); }
+    .product-img { width: 100%; height: 250px; object-fit: cover; background: #ddd6cc; }
+    .product-info { padding: 18px; }
+    .product-title { font-weight: 800; font-size: 1.1rem; margin-bottom: 6px; }
+    .product-category { font-size: 0.7rem; color: #b87c4a; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .product-price { font-size: 1.35rem; font-weight: 800; color: #1e5552; margin: 8px 0; }
+    .stock-status { font-size: 0.7rem; padding: 4px 10px; border-radius: 50px; display: inline-block; margin-bottom: 12px; }
+    .in-stock { background: #dff0e6; color: #1f6e43; }
+    .low-stock { background: #fff0df; color: #c96f1e; }
+    .out-stock { background: #ffe3df; color: #bc4e2c; }
+    .contact-seller { width: 100%; background: #1e5552; color: white; border: none; padding: 10px; border-radius: 40px; font-weight: 600; cursor: pointer; transition: 0.2s; margin-top: 8px; }
+    .contact-seller:hover { background: #0c3a3b; }
+    /* admin modal */
+    .admin-panel { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.94); z-index: 1000; display: none; justify-content: center; align-items: center; }
+    .admin-modal { background: white; width: 92%; max-width: 560px; max-height: 85vh; border-radius: 36px; padding: 28px; overflow-y: auto; }
+    .admin-modal h2, .admin-modal h3 { margin-bottom: 16px; }
+    .admin-modal input, .admin-modal select, .admin-modal textarea { width: 100%; padding: 12px; margin: 8px 0 16px; border: 1px solid #ddd2c0; border-radius: 28px; background: #fefcf9; }
+    .product-form { border-bottom: 1px solid #eee; margin-bottom: 24px; padding-bottom: 20px; }
+    .admin-product-item { display: flex; justify-content: space-between; align-items: center; background: #faf7f2; padding: 12px 16px; border-radius: 28px; margin-bottom: 10px; }
+    .btn-primary { background: #1e5552; color: white; border: none; padding: 12px 20px; border-radius: 40px; font-weight: 700; cursor: pointer; }
+    .btn-danger { background: #bc4e2c; color: white; border: none; padding: 6px 14px; border-radius: 30px; cursor: pointer; }
+    .close-admin { float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+    footer { background: #1f2a2e; color: #b9b1a2; text-align: center; padding: 32px; font-size: 0.8rem; }
+    .toast-msg { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #1e5552; color: white; padding: 12px 25px; border-radius: 60px; font-size: 0.85rem; z-index: 2000; display: none; white-space: nowrap; }
+    @media (max-width: 700px) {
+      .products-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; }
+      .product-img { height: 170px; }
+      .search-wrapper { flex-direction: column; align-items: stretch; }
+      .category-buttons { justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="container header-flex">
+    <div class="logo">
+      <h1>EDWIN X <span class="hidden-dot" id="adminAccessDot">•</span></h1>
+      <p>Live inventory • Updated by admin in real time</p>
+    </div>
+    <div class="cart-badge" id="openAdminHint">
+      <i class="fas fa-shield-alt"></i> Admin (tap dot 5x)
+    </div>
+  </div>
+</div>
+
+<div class="search-section">
+  <div class="container search-wrapper">
+    <div class="search-box">
+      <i class="fas fa-search" style="color:#b87c4a;"></i>
+      <input type="text" id="searchInput" placeholder="Search clothes, mattresses, shoes, belts...">
+      <button id="searchBtn"><i class="fas fa-search"></i> Search</button>
+    </div>
+    <div class="category-buttons" id="categoryFilters">
+      <button class="cat-filter active" data-cat="all">All</button>
+      <button class="cat-filter" data-cat="Clothes">👕 Clothes</button>
+      <button class="cat-filter" data-cat="T-Shirts">👕 T-Shirts</button>
+      <button class="cat-filter" data-cat="Shirts">👔 Shirts</button>
+      <button class="cat-filter" data-cat="Trousers">👖 Trousers</button>
+      <button class="cat-filter" data-cat="Shoes">👟 Shoes</button>
+      <button class="cat-filter" data-cat="Mattresses">🛏️ Mattresses</button>
+      <button class="cat-filter" data-cat="Hats">🧢 Hats</button>
+      <button class="cat-filter" data-cat="Belts">⛓️ Belts</button>
+    </div>
+  </div>
+</div>
+
+<section class="products-section">
+  <div class="container">
+    <div class="section-title">
+      <span>🔥 Live Collection — updated instantly</span>
+      <span style="font-size: 0.8rem; color:#b87c4a;"><i class="fas fa-sync-alt"></i> Real-time sync</span>
+    </div>
+    <div class="products-grid" id="productsGrid">
+      <div style="text-align: center; grid-column: span 4;">🌀 Loading store inventory...</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>Edwin X Collection | Quality Mattresses, Footwear, Belts, Hats & Clothing</p>
+  <p>📞 Order/Inquiry: 0725980427 | 📧 shop@edwinx.co.ke</p>
+  <p>💳 Lipa Na M-Pesa Till: 123456 (Name: EDWIN X)</p>
+  <p style="font-size:12px; margin-top:8px;">✅ Anyone with this link sees admin updates immediately (no refresh needed)</p>
+</footer>
+
+<!-- Admin Modal -->
+<div id="adminPanel" class="admin-panel">
+  <div class="admin-modal">
+    <span class="close-admin" id="closeAdminBtn">&times;</span>
+    <div id="adminLoginView">
+      <h2><i class="fas fa-lock"></i> Admin Portal</h2>
+      <input type="password" id="adminPassword" placeholder="Enter password">
+      <button id="loginBtn" class="btn-primary">Login</button>
+      <p style="margin-top: 12px; font-size:12px;">Default: NashAdmin2025!</p>
+    </div>
+    <div id="adminDashboardView" style="display:none;">
+      <h2>📦 Admin Dashboard</h2>
+      <div class="product-form">
+        <h3>➕ Add New Product (visible to everyone instantly)</h3>
+        <input type="text" id="prodName" placeholder="Product name *">
+        <select id="prodCategory">
+          <option value="Clothes">Clothes</option><option value="T-Shirts">T-Shirts</option><option value="Shirts">Shirts</option>
+          <option value="Trousers">Trousers</option><option value="Shoes">Shoes</option>
+          <option value="Mattresses">Mattresses</option><option value="Hats">Hats</option><option value="Belts">Belts</option>
+        </select>
+        <input type="number" id="prodPrice" placeholder="Price (KES) *">
+        <input type="number" id="prodStock" placeholder="Stock quantity *">
+        <textarea id="prodDesc" rows="2" placeholder="Short description..."></textarea>
+        <input type="file" id="prodImage" accept="image/*">
+        <button id="addProductBtn" class="btn-primary"><i class="fas fa-cloud-upload-alt"></i> Publish product</button>
+      </div>
+      <h3>✏️ Manage inventory (edit stock / delete)</h3>
+      <div id="adminProductsList" style="max-height: 340px; overflow-y: auto;"></div>
+      <button id="changePasswordBtn" style="background:#c49a6c; margin-top:16px;" class="btn-primary">Change Admin Password</button>
+    </div>
+  </div>
+</div>
+<div id="toastMsg" class="toast-msg"></div>
+
+<script>
+  // ========== FIREBASE CONFIG (must match your project) ==========
+  const firebaseConfig = {
+    apiKey: "AIzaSyB_cAjquKbtEcqcfdHiby9OIGTFwt2WFls",
+    authDomain: "madip-fac8f.firebaseapp.com",
+    databaseURL: "https://madip-fac8f-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "madip-fac8f",
+    storageBucket: "madip-fac8f.firebasestorage.app",
+    messagingSenderId: "228632767324",
+    appId: "1:228632767324:web:07bd5fe00aeee29501ef99",
+    measurementId: "G-VSMN9S39W0"
+  };
+  
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  const storage = firebase.storage();
+  
+  // ---------- DOM elements ----------
+  const productsGrid = document.getElementById("productsGrid");
+  const adminPanel = document.getElementById("adminPanel");
+  const adminAccessDot = document.getElementById("adminAccessDot");
+  const closeAdminBtn = document.getElementById("closeAdminBtn");
+  const loginView = document.getElementById("adminLoginView");
+  const dashboardView = document.getElementById("adminDashboardView");
+  const loginBtn = document.getElementById("loginBtn");
+  const adminPasswordInput = document.getElementById("adminPassword");
+  const addProductBtn = document.getElementById("addProductBtn");
+  const changePasswordBtn = document.getElementById("changePasswordBtn");
+  const searchInput = document.getElementById("searchInput");
+  const searchBtn = document.getElementById("searchBtn");
+  
+  // Global state for filters (applied live)
+  let currentCategory = "all";
+  let currentSearchQuery = "";
+  let allProductsSnapshot = [];   // stores product docs for filtering
+  
+  // ---------- Toast helper ----------
+  function showToast(msg, isError = false) {
+    const toast = document.getElementById("toastMsg");
+    toast.textContent = msg;
+    toast.style.background = isError ? "#bc4e2c" : "#1e5552";
+    toast.style.display = "block";
+    setTimeout(() => toast.style.display = "none", 3000);
+  }
+  
+  // ---------- 5-tap admin door ----------
+  let dotCount = 0;
+  let dotTimer;
+  if (adminAccessDot) {
+    adminAccessDot.addEventListener("click", (e) => {
+      e.stopPropagation();
+      dotCount++;
+      if (dotCount === 1) showToast(`🔐 tap ${5-dotCount} more times`, false);
+      else if (dotCount < 5) showToast(`⏳ ${5-dotCount} taps remaining`, false);
+      clearTimeout(dotTimer);
+      dotTimer = setTimeout(() => { dotCount = 0; }, 2000);
+      if (dotCount >= 5) {
+        dotCount = 0;
+        clearTimeout(dotTimer);
+        adminPanel.style.display = "flex";
+        loginView.style.display = "block";
+        dashboardView.style.display = "none";
+        adminPasswordInput.value = "";
+        showToast("Admin portal ready");
+      }
+    });
+  }
+  closeAdminBtn.addEventListener("click", () => { adminPanel.style.display = "none"; });
+  
+  // ---------- LOGIN with persisted password ----------
+  loginBtn.addEventListener("click", async () => {
+    const entered = adminPasswordInput.value;
+    let storedPwd = "NashAdmin2025!";
+    try {
+      const doc = await db.collection("settings").doc("admin").get();
+      if (doc.exists && doc.data().password) storedPwd = doc.data().password;
+      else await db.collection("settings").doc("admin").set({ password: "NashAdmin2025!" });
+    } catch(e) { console.warn(e); }
+    if (entered === storedPwd) {
+      loginView.style.display = "none";
+      dashboardView.style.display = "block";
+      showToast("✅ Admin mode active");
+      renderAdminProductList();   // show current products for management
+    } else showToast("❌ Wrong password", true);
+  });
+  
+  changePasswordBtn.addEventListener("click", async () => {
+    const newPass = prompt("Enter new admin password (min 5 characters):");
+    if (newPass && newPass.length >= 4) {
+      await db.collection("settings").doc("admin").set({ password: newPass });
+      showToast("Password updated!");
+    } else if(newPass) showToast("Too short", true);
+  });
+  
+  // ========== REAL-TIME RENDERING FOR ALL VISITORS ==========
+  // This function listens to Firestore and updates the UI immediately for everyone.
+  function attachRealtimeListener() {
+    // Real-time snapshot: every change (add, edit, delete) refreshes the customer view and admin list.
+    db.collection("products").orderBy("timestamp", "desc").onSnapshot((snapshot) => {
+      allProductsSnapshot = snapshot.docs;
+      applyFiltersAndRenderCustomerView();   // customers see updates instantly
+      // If admin dashboard is open, refresh admin list too
+      if (dashboardView && dashboardView.style.display === "block") {
+        renderAdminProductList();
+      }
+    }, (error) => {
+      console.error("Firestore realtime error:", error);
+      productsGrid.innerHTML = `<div style="grid-column:span 4; text-align:center;">⚠️ Realtime connection issue. Check Firebase rules.</div>`;
+    });
+  }
+  
+  // Customer side: filter by category + search, then render
+  function applyFiltersAndRenderCustomerView() {
+    let filtered = [...allProductsSnapshot];
+    // category filter
+    if (currentCategory !== "all") {
+      filtered = filtered.filter(doc => doc.data().category === currentCategory);
+    }
+    // search filter (name, description, category)
+    if (currentSearchQuery.trim() !== "") {
+      const query = currentSearchQuery.toLowerCase();
+      filtered = filtered.filter(doc => {
+        const data = doc.data();
+        return data.name.toLowerCase().includes(query) ||
+               (data.description && data.description.toLowerCase().includes(query)) ||
+               data.category.toLowerCase().includes(query);
+      });
+    }
+    if (filtered.length === 0) {
+      productsGrid.innerHTML = `<div style="grid-column:span 4; text-align:center;">🔍 No products match. Admin can add items from dashboard.</div>`;
+      return;
+    }
+    productsGrid.innerHTML = filtered.map(doc => {
+      const data = doc.data();
+      let stockClass = "in-stock", stockText = "✅ In Stock";
+      if (data.stock <= 0) { stockClass = "out-stock"; stockText = "❌ Out of Stock"; }
+      else if (data.stock < 5) { stockClass = "low-stock"; stockText = `⚠️ Low stock (${data.stock} left)`; }
+      else stockText = `📦 In Stock (${data.stock})`;
+      
+      const safeName = escapeHtml(data.name);
+      const safeDesc = escapeHtml(data.description || '');
+      return `
+        <div class="product-card">
+          <img class="product-img" src="${data.imageUrl || 'https://via.placeholder.com/300x240?text=Edwin+X'}" alt="${safeName}" onerror="this.src='https://via.placeholder.com/300x240?text=Edwin+X'">
+          <div class="product-info">
+            <div class="product-category">${data.category}</div>
+            <div class="product-title">${safeName}</div>
+            <div class="product-price">KSh ${Number(data.price).toLocaleString()}</div>
+            <span class="stock-status ${stockClass}">${stockText}</span>
+            <p style="font-size:0.75rem; color:#6b5a48; margin-bottom: 12px;">${safeDesc}</p>
+            <button class="contact-seller" data-prodname="${safeName}"><i class="fas fa-shopping-cart"></i> Buy / Inquire</button>
+          </div>
+        </div>
+      `;
+    }).join("");
+    
+    // attach email inquiries
+    document.querySelectorAll(".contact-seller").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const prodName = btn.getAttribute("data-prodname");
+        const subject = `Order inquiry: ${prodName} - Edwin X Store`;
+        const body = `Hello, I'm interested in purchasing "${prodName}". Please share payment details (M-Pesa Till) and availability.`;
+        window.location.href = `mailto:shop@edwinx.co.ke?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      });
+    });
+  }
+  
+  function escapeHtml(str) { if(!str) return ""; return str.replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+  
+  // Admin product list (for management)
+  async function renderAdminProductList() {
+    const container = document.getElementById("adminProductsList");
+    if (!container) return;
+    if (allProductsSnapshot.length === 0) {
+      container.innerHTML = "<p>✨ No products yet. Add your first item!</p>";
+      return;
+    }
+    container.innerHTML = allProductsSnapshot.map(doc => {
+      const data = doc.data();
+      return `
+        <div class="admin-product-item">
+          <div><strong>${escapeHtml(data.name)}</strong><br>${data.category} | KSh ${data.price} | Stock: ${data.stock}</div>
+          <div>
+            <button class="btn-danger" onclick="window.deleteProductItem('${doc.id}')">Delete</button>
+            <button style="margin-left:8px; background:#c49a6c; border:none; border-radius:30px; padding:6px 12px;" onclick="window.editStockItem('${doc.id}', ${data.stock})">✏️ Stock</button>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+  
+  // Edit stock from admin panel
+  window.editStockItem = async (id, currentStock) => {
+    let newVal = prompt("Update stock quantity:", currentStock);
+    if (newVal !== null && !isNaN(parseInt(newVal))) {
+      await db.collection("products").doc(id).update({ stock: parseInt(newVal) });
+      showToast("✅ Stock updated, all visitors see change immediately");
+    }
+  };
+  
+  window.deleteProductItem = async (id) => {
+    if (confirm("⚠️ Permanently delete product? This will disappear for all users.")) {
+      await db.collection("products").doc(id).delete();
+      showToast("Product deleted from store");
+    }
+  };
+  
+  // ---------- ADD NEW PRODUCT (admin) with image, visible globally ----------
+  addProductBtn.addEventListener("click", async () => {
+    const name = document.getElementById("prodName").value.trim();
+    const category = document.getElementById("prodCategory").value;
+    const price = parseFloat(document.getElementById("prodPrice").value);
+    const stock = parseInt(document.getElementById("prodStock").value);
+    const desc = document.getElementById("prodDesc").value.trim();
+    const imageFile = document.getElementById("prodImage").files[0];
+    
+    if (!name || isNaN(price) || isNaN(stock)) {
+      showToast("❌ Product name, price and stock are required", true);
+      return;
+    }
+    if (price <= 0 || stock < 0) { showToast("Price >0 and stock >=0", true); return; }
+    
+    let imageUrl = "https://via.placeholder.com/300x240?text=Edwin+X+Product";
+    if (imageFile) {
+      try {
+        const fileExt = imageFile.name.split('.').pop();
+        const storageRef = storage.ref().child(`products/${Date.now()}_${name.replace(/[^a-z0-9]/gi,'_')}.${fileExt}`);
+        await storageRef.put(imageFile);
+        imageUrl = await storageRef.getDownloadURL();
+        showToast("📸 Image uploaded");
+      } catch(err) {
+        console.warn(err);
+        showToast("⚠️ Image upload failed, using placeholder", true);
+      }
+    }
+    
+    await db.collection("products").add({
+      name, category, price, stock, description: desc,
+      imageUrl, timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    showToast(`✅ "${name}" is now LIVE for all visitors!`);
+    // clear form
+    document.getElementById("prodName").value = "";
+    document.getElementById("prodPrice").value = "";
+    document.getElementById("prodStock").value = "";
+    document.getElementById("prodDesc").value = "";
+    document.getElementById("prodImage").value = "";
+    // No need to call loadProducts — snapshot listener updates everything
+  });
+  
+  // ---------- FILTER + SEARCH EVENTs (customers) ----------
+  document.querySelectorAll(".cat-filter").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".cat-filter").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      currentCategory = btn.getAttribute("data-cat");
+      applyFiltersAndRenderCustomerView();
+    });
+  });
+  
+  function performSearch() {
+    currentSearchQuery = searchInput.value.trim();
+    applyFiltersAndRenderCustomerView();
+  }
+  searchBtn.addEventListener("click", performSearch);
+  searchInput.addEventListener("keyup", (e) => { if(e.key === "Enter") performSearch(); });
+  
+  // ---------- START REALTIME SYNC (CRITICAL: everyone sees admin changes) ----------
+  attachRealtimeListener();
+</script>
+</body>
+        </html>
